@@ -1,0 +1,5 @@
+{
+  "/freistellung": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"html","access_level":"teacher"},
+  "/freistellung.css": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"css","access_level":"teacher"},
+  "/freistellung.js": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"js","access_level":"teacher"}
+}

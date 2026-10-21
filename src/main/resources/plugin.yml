@@ -1,0 +1,5 @@
+id: freistellung
+name: Freistellung
+description: Workflow für Freistellungsanträge von Lehrkräften.
+main: de.igslandstuhl.database.freistellung.FreistellungPlugin
+apiVersion: 1

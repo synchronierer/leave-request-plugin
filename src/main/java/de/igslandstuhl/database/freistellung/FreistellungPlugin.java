@@ -36,7 +36,7 @@ public final class FreistellungPlugin extends Plugin {
         config = new FreistellungConfig(this);
         getLogger().info("Freistellung plugin loading");
         try { schema(); } catch (SQLException e) { throw new IllegalStateException("Freistellung-Schema konnte nicht angelegt werden", e); }
-        for (String path : List.of("/freistellung-submit", "/freistellung-orga", "/freistellung-sl", "/freistellung-delete", "/freistellung-resend"))
+        for (String path : List.of("/freistellung-submit", "/freistellung-orga", "/freistellung-sl", "/freistellung-delete", "/freistellung-resend", "/freistellung-withdraw"))
             HttpHandler.registerPostRequestHandler(path, AccessLevel.TEACHER, this::post);
         HttpHandler.registerPostRequestHandler("/freistellung-data", AccessLevel.TEACHER, this::post);
         HttpHandler.registerPostRequestHandler("/freistellung-role-info", AccessLevel.TEACHER, this::post);
@@ -72,6 +72,7 @@ public final class FreistellungPlugin extends Plugin {
                 case "/freistellung-sl" -> decide(rq, user, true);
                 case "/freistellung-delete" -> delete(rq, user);
                 case "/freistellung-resend" -> resend(rq, user);
+                case "/freistellung-withdraw" -> withdraw(rq, user);
                 case "/freistellung-role-info" -> roleInfo(rq, user);
                 case "/freistellung-role" -> role(rq, user);
                 default -> data(rq, user);
@@ -109,7 +110,7 @@ public final class FreistellungPlugin extends Plugin {
         List<String> values = new ArrayList<>();
         if (!reviewer) { sql.append(" AND applicant=?"); values.add(user.getUsername()); }
         else {
-            addFilter(sql, values, filter, "status", DECISIONS, Set.of("EINGEREICHT","ORGA_RUECKSPRACHE","ORGA_ABGESCHLOSSEN","ABGESCHLOSSEN"));
+            addFilter(sql, values, filter, "status", DECISIONS, Set.of("EINGEREICHT","ORGA_RUECKSPRACHE","ORGA_ABGESCHLOSSEN","ABGESCHLOSSEN","ZURUECKGEZOGEN"));
             addFilter(sql, values, filter, "schoolYear", null, null);
             addFilter(sql, values, filter, "applicant", null, null);
             addFilter(sql, values, filter, "type", TYPES, TYPES);
@@ -143,6 +144,7 @@ public final class FreistellungPlugin extends Plugin {
 
     private HttpResponse delete(APIPostRequest rq, User user) throws SQLException { if(!(hasRole(user,"ORGALEITER")||hasRole(user,"SCHULLEITUNG"))) return PostResponse.forbidden("Keine Berechtigung",rq); if(!"yes".equalsIgnoreCase(required(rq,"confirmation"))) throw new IllegalArgumentException("Löschbestätigung fehlt"); String id=required(rq,"id"),now=Instant.now().toString(); try(PreparedStatement p=db().prepareStatement("UPDATE freistellung_requests SET deleted_at=?,deleted_by=?,updated_at=? WHERE id=? AND deleted_at IS NULL")){p.setString(1,now);p.setString(2,user.getUsername());p.setString(3,now);p.setString(4,id);if(p.executeUpdate()!=1)return PostResponse.notFound("Vorgang nicht gefunden",rq);}history(id,user.getUsername(),null,"GELOESCHT",now,"Revisionsfähige Löschung");return PostResponse.json(Map.of("deleted",true),rq); }
     private HttpResponse resend(APIPostRequest rq, User user) throws SQLException { if(!(hasRole(user,"ORGALEITER")||hasRole(user,"SCHULLEITUNG")))return PostResponse.forbidden("Keine Berechtigung",rq);try(PreparedStatement p=db().prepareStatement("UPDATE freistellung_notifications SET state='PENDING', attempts=attempts+1 WHERE id=?")){p.setLong(1,Integer.parseInt(required(rq,"notificationId")));p.executeUpdate();}return PostResponse.json(Map.of("queued",true),rq); }
+    private HttpResponse withdraw(APIPostRequest rq, User user) throws SQLException { String id=required(rq,"id"), now=Instant.now().toString(); try(PreparedStatement q=db().prepareStatement("SELECT status,applicant FROM freistellung_requests WHERE id=? AND deleted_at IS NULL")){q.setString(1,id);try(ResultSet r=q.executeQuery()){if(!r.next())return PostResponse.notFound("Vorgang nicht gefunden",rq);if(!user.getUsername().equals(r.getString("applicant")))return PostResponse.forbidden("Nur die antragstellende Lehrkraft darf zurückziehen",rq);String old=r.getString("status");if(!Set.of("EINGEREICHT","ORGA_RUECKSPRACHE").contains(old))throw new IllegalArgumentException("Vorgang kann nicht mehr zurückgezogen werden");try(PreparedStatement u=db().prepareStatement("UPDATE freistellung_requests SET status='ZURUECKGEZOGEN',updated_at=? WHERE id=? AND status=?")){u.setString(1,now);u.setString(2,id);u.setString(3,old);if(u.executeUpdate()!=1)throw new IllegalArgumentException("Vorgang wurde inzwischen bearbeitet");}history(id,user.getUsername(),old,"ZURUECKGEZOGEN",now,"Antrag zurückgezogen");return PostResponse.json(Map.of("id",id,"status","ZURUECKGEZOGEN"),rq);}} }
 
     private JsonObject publicJson(ResultSet r, boolean orga, boolean sl) throws SQLException { JsonObject o=new JsonObject(); o.addProperty("id",r.getString("id"));o.addProperty("applicant",r.getString("applicant"));o.addProperty("type",r.getString("type"));o.addProperty("startDate",r.getString("start_date"));o.addProperty("endDate",r.getString("end_date"));o.addProperty("startHour",r.getInt("start_hour"));o.addProperty("endHour",r.getInt("end_hour"));o.addProperty("reason",r.getString("reason"));o.addProperty("groupName",r.getString("group_name"));o.addProperty("status",r.getString("status"));o.addProperty("schoolYear",r.getString("school_year"));o.addProperty("createdAt",r.getString("created_at"));o.addProperty("completedAt",r.getString("sl_at"));o.addProperty("attachment",r.getString("attachment_id")!=null);if(orga){o.addProperty("slInternalComment",r.getString("sl_internal_comment"));o.addProperty("slMessage",r.getString("sl_message"));o.addProperty("orgaDecision",r.getString("orga_decision"));}else if(sl){o.addProperty("orgaDecision",r.getString("orga_decision"));o.addProperty("orgaComment",r.getString("orga_comment"));o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slMessage",r.getString("sl_message"));}else{o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slMessage",r.getString("sl_message"));}return o; }
     private boolean hasRole(User u,String role)throws SQLException{try(PreparedStatement p=db().prepareStatement("SELECT 1 FROM freistellung_roles WHERE username=? AND role=?")){p.setString(1,u.getUsername());p.setString(2,role);try(ResultSet r=p.executeQuery()){return r.next();}}}

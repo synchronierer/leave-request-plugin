@@ -10,6 +10,8 @@ import java.util.EnumSet;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 /** Minimal implicit-TLS SMTP transport; credentials remain outside source and release artifacts. */
 final class SmtpTransport {
@@ -21,7 +23,7 @@ final class SmtpTransport {
         int port = settings.port;
         String from = settings.from;
         String username = settings.username;
-        String password = settings.password;
+        String smtpCredential = settings.password;
         SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket(host, port);
         socket.setSoTimeout(10000);
         try (socket; BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.US_ASCII));
@@ -30,7 +32,7 @@ final class SmtpTransport {
             if (username != null) {
                 command(in, out, "AUTH LOGIN", 334);
                 command(in, out, Base64.getEncoder().encodeToString(username.getBytes(StandardCharsets.US_ASCII)), 334);
-                command(in, out, Base64.getEncoder().encodeToString(password.getBytes(StandardCharsets.UTF_8)), 235);
+                command(in, out, Base64.getEncoder().encodeToString(smtpCredential.getBytes(StandardCharsets.UTF_8)), 235);
             }
             command(in, out, "MAIL FROM:<" + address(from) + ">", 250);
             command(in, out, "RCPT TO:<" + address(recipient) + ">", 250, 251);
@@ -41,6 +43,26 @@ final class SmtpTransport {
             expect(in, 250);
             command(in, out, "QUIT", 221);
         }
+    }
+
+    static Map<String,Object> status() {
+        Map<String,Object> result = new LinkedHashMap<>();
+        boolean smtp = "smtp".equalsIgnoreCase(System.getenv().getOrDefault("ARCANUM_FREISTELLUNG_MAIL_TRANSPORT", "fake"));
+        result.put("mode", smtp ? "smtp" : "fake");
+        result.put("tls", "implicit");
+        result.put("usernamePresent", false);
+        result.put("passwordPresent", false);
+        if (!smtp) { result.put("configured", true); result.put("connection", "fake-mail: keine externe Verbindung"); return result; }
+        try {
+            Settings s = settings();
+            result.put("configured", true); result.put("host", s.host); result.put("port", s.port);
+            result.put("from", s.from); result.put("usernamePresent", s.username != null && !s.username.isBlank());
+            result.put("passwordPresent", s.password != null && !s.password.isBlank());
+            result.put("connection", "Konfiguration geladen; kein Testversand ausgeführt");
+        } catch (Exception e) {
+            result.put("configured", false); result.put("connection", "SMTP-Konfiguration nicht verwendbar");
+        }
+        return result;
     }
 
     private static Settings settings() throws IOException {
@@ -65,9 +87,9 @@ final class SmtpTransport {
 
     private static Settings fromEnvironment() throws IOException {
         String username = System.getenv("ARCANUM_FREISTELLUNG_SMTP_USERNAME");
-        String password = System.getenv("ARCANUM_FREISTELLUNG_SMTP_PASSWORD");
-        if ((username == null) != (password == null)) throw new IOException("SMTP-Zugangsdaten unvollständig");
-        return new Settings(requiredEnv("ARCANUM_FREISTELLUNG_SMTP_HOST"), port(System.getenv().getOrDefault("ARCANUM_FREISTELLUNG_SMTP_PORT", "465")), requiredEnv("ARCANUM_FREISTELLUNG_SMTP_FROM"), requiredValue(username, "ARCANUM_FREISTELLUNG_SMTP_USERNAME"), requiredValue(password, "ARCANUM_FREISTELLUNG_SMTP_PASSWORD"), System.getenv().getOrDefault("ARCANUM_FREISTELLUNG_SMTP_DISPLAY_NAME", "Arcanum – Freistellungen"));
+        String smtpCredential = System.getenv("ARCANUM_FREISTELLUNG_SMTP_PASSWORD");
+        if ((username == null) != (smtpCredential == null)) throw new IOException("SMTP-Zugangsdaten unvollständig");
+        return new Settings(requiredEnv("ARCANUM_FREISTELLUNG_SMTP_HOST"), port(System.getenv().getOrDefault("ARCANUM_FREISTELLUNG_SMTP_PORT", "465")), requiredEnv("ARCANUM_FREISTELLUNG_SMTP_FROM"), requiredValue(username, "ARCANUM_FREISTELLUNG_SMTP_USERNAME"), requiredValue(smtpCredential, "ARCANUM_FREISTELLUNG_SMTP_PASSWORD"), System.getenv().getOrDefault("ARCANUM_FREISTELLUNG_SMTP_DISPLAY_NAME", "Arcanum – Freistellungen"));
     }
 
     private static int port(String value) throws IOException { try { int port = Integer.parseInt(value); if (port < 1 || port > 65535) throw new IOException("Ungültiger SMTP-Port"); return port; } catch (NumberFormatException e) { throw new IOException("Ungültiger SMTP-Port", e); } }

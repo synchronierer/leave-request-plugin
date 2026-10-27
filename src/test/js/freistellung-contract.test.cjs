@@ -12,3 +12,17 @@ test('Freistellung uses explicit permission rights and stores audit function',()
   const paths=JSON.parse(fs.readFileSync(path.join(root,'resources/meta/paths/get_paths.json'),'utf8'));
   assert.ok(paths['/freistellung-bearbeitung']);
 });
+
+test('mail uses Arcanum profiles, current rights and a fake transport by default',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const source=fs.readFileSync(path.join(root,'java/de/igslandstuhl/database/freistellung/FreistellungPlugin.java'),'utf8');
+  assert.match(source,/freistellung_user_profiles/); assert.match(source,/notification_email/);
+  assert.match(source,/User\.getAllUsers\(\)/); assert.match(source,/notificationEmail/);
+  assert.match(source,/BLOCKED_NO_RECIPIENT/); assert.match(source,/recipient_email/);
+  assert.match(source,/freistellung-mail-admin-data/); assert.match(source,/user\.isAdmin\(\)/);
+  assert.match(source,/RUECKSPRACHE/); assert.match(source,/ORGA_ABGESCHLOSSEN/);
+  const js=fs.readFileSync(path.join(root,'resources/js/user/freistellung-mail-admin.js'),'utf8');
+  assert.match(js,/textContent/); assert.match(js,/freistellung-mail-profile/);
+  const applicant=fs.readFileSync(path.join(root,'resources/js/user/freistellung.js'),'utf8');
+  assert.doesNotMatch(applicant,/data-withdraw/);
+});

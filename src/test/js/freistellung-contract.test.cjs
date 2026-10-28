@@ -8,6 +8,7 @@ test('Freistellung uses explicit permission rights and stores audit function',()
   const root=path.join(__dirname,'..','..','main');
   const source=fs.readFileSync(path.join(root,'java/de/igslandstuhl/database/freistellung/FreistellungPlugin.java'),'utf8');
   assert.match(source,/freistellung_apply/); assert.match(source,/freistellung_orga/); assert.match(source,/freistellung_sl/);
+  assert.match(source,/PluginLoader/); assert.match(source,/getPluginInfos/); assert.match(source,/permission-manager/); assert.match(source,/classLoader/);
   assert.match(source,/function_name/); assert.match(source,/hasPermission/); assert.doesNotMatch(source,/hasRole\(user/);
   const paths=JSON.parse(fs.readFileSync(path.join(root,'resources/meta/paths/get_paths.json'),'utf8'));
   assert.ok(paths['/freistellung-bearbeitung']);

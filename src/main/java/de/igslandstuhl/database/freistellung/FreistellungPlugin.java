@@ -20,6 +20,7 @@ import java.nio.file.*;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
+import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.util.regex.Pattern;
 
@@ -198,7 +199,43 @@ public final class FreistellungPlugin extends Plugin {
 
     private JsonObject publicJson(ResultSet r, boolean orga, boolean sl) throws SQLException { JsonObject o=new JsonObject();o.addProperty("id",r.getString("id"));o.addProperty("applicant",r.getString("applicant"));o.addProperty("type",r.getString("type"));o.addProperty("startDate",r.getString("start_date"));o.addProperty("endDate",r.getString("end_date"));o.addProperty("startHour",r.getInt("start_hour"));o.addProperty("endHour",r.getInt("end_hour"));o.addProperty("reason",r.getString("reason"));o.addProperty("groupName",r.getString("group_name"));o.addProperty("status",r.getString("status"));o.addProperty("schoolYear",r.getString("school_year"));o.addProperty("createdAt",r.getString("created_at"));o.addProperty("completedAt",r.getString("sl_at"));o.addProperty("attachment",r.getString("attachment_id")!=null);o.addProperty("attachmentName",r.getString("attachment_name"));if(orga){o.addProperty("slInternalComment",r.getString("sl_internal_comment"));o.addProperty("slMessage",r.getString("sl_message"));o.addProperty("orgaDecision",r.getString("orga_decision"));o.addProperty("orgaComment",r.getString("orga_comment"));}else if(sl){o.addProperty("orgaDecision",r.getString("orga_decision"));o.addProperty("orgaComment",r.getString("orga_comment"));o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slInternalComment",r.getString("sl_internal_comment"));o.addProperty("slMessage",r.getString("sl_message"));}else{o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slMessage",r.getString("sl_message"));}JsonArray history=new JsonArray();try(PreparedStatement p=db().prepareStatement("SELECT actor,function_name,from_status,to_status,event_at,detail FROM freistellung_history WHERE request_id=? ORDER BY id")){p.setString(1,r.getString("id"));try(ResultSet h=p.executeQuery()){while(h.next()){JsonObject e=new JsonObject();e.addProperty("actor",h.getString(1));e.addProperty("function",h.getString(2));e.addProperty("fromStatus",h.getString(3));e.addProperty("toStatus",h.getString(4));e.addProperty("at",h.getString(5));e.addProperty("detail",h.getString(6));history.add(e);}}}o.add("history",history);return o; }
     private void requirePermission(User u,String permission){if(!hasPermission(u,permission))throw new SecurityException("Keine Berechtigung");}
-    private boolean hasPermission(User u,String permission){try{Class<?> p=Class.forName("de.igslandstuhl.database.permissions.Permission");Object definition=p.getMethod("getByName",String.class).invoke(null,permission);if(definition==null)return false;Class<?> effects=Class.forName("de.igslandstuhl.database.permissions.UserEffect");Object effect=effects.getMethod("get",User.class).invoke(null,u);if(effect==null)return false;Object values=effects.getMethod("getPermissions").invoke(effect);for(Object value:(Object[])values)if(permission.equals(p.getMethod("getName").invoke(value)))return true;}catch(Exception ignored){}return false;}
+    private boolean hasPermission(User u,String permission){
+        try {
+            Class<?> p=permissionClass("de.igslandstuhl.database.permissions.Permission");
+            Object definition=p.getMethod("getByName",String.class).invoke(null,permission);
+            if(definition==null)return false;
+            Class<?> effects=permissionClass("de.igslandstuhl.database.permissions.UserEffect");
+            Object effect=effects.getMethod("get",User.class).invoke(null,u);
+            if(effect==null)return false;
+            Object values=effects.getMethod("getPermissions").invoke(effect);
+            for(Object value:(Object[])values)if(permission.equals(p.getMethod("getName").invoke(value)))return true;
+        } catch (ReflectiveOperationException | LinkageError ignored) { }
+        return false;
+    }
+
+    /** Resolve Permission Manager classes from the sibling plugin class loader. */
+    private static Class<?> permissionClass(String name) throws ReflectiveOperationException {
+        List<ClassLoader> loaders=new ArrayList<>();
+        loaders.add(FreistellungPlugin.class.getClassLoader());
+        if(Thread.currentThread().getContextClassLoader()!=null)loaders.add(Thread.currentThread().getContextClassLoader());
+        ClassLoader own=FreistellungPlugin.class.getClassLoader();
+        try {
+            Class<?> loaderType=Class.forName("de.igslandstuhl.database.plugins.PluginLoader",false,own);
+            Object loader=loaderType.getMethod("getInstance").invoke(null);
+            Object infos=loaderType.getMethod("getPluginInfos").invoke(loader);
+            for(Object info:(Iterable<?>)infos){
+                Method description=info.getClass().getDeclaredMethod("description"); description.setAccessible(true);
+                Object pluginDescription=description.invoke(info);
+                Method id=pluginDescription.getClass().getMethod("id");
+                if(!"permission-manager".equals(id.invoke(pluginDescription)))continue;
+                Method classLoader=info.getClass().getDeclaredMethod("classLoader"); classLoader.setAccessible(true);
+                loaders.add((ClassLoader)classLoader.invoke(info));
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+        ReflectiveOperationException failure=new ClassNotFoundException(name);
+        for(ClassLoader loader:loaders)if(loader!=null)try{return Class.forName(name,false,loader);}catch(ClassNotFoundException e){failure=e;}
+        throw failure;
+    }
     private String functionFor(User u){if(hasPermission(u,ORGA))return "ORGALEITUNG";if(hasPermission(u,SL))return "SCHULLEITUNG";return "ANTRAGSTELLER";}
     private void history(String id,String actor,String function,String from,String to,String at,String detail)throws SQLException{try(PreparedStatement p=db().prepareStatement("INSERT INTO freistellung_history(request_id,actor,function_name,from_status,to_status,event_at,detail) VALUES(?,?,?,?,?,?,?)")){p.setString(1,id);p.setString(2,actor);p.setString(3,function);p.setString(4,from);p.setString(5,to);p.setString(6,at);p.setString(7,detail);p.executeUpdate();}}
     private void notifyNewApplication(String id) {

@@ -1,2 +1,31 @@
-:root{--ink:#243746;--muted:#607482;--paper:#f7f4ec;--card:#fffdf8;--accent:#7d4e35;--line:#d8cfc2}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}.leave{max-width:980px;margin:0 auto;padding:clamp(1rem,4vw,3rem)}header{border-bottom:3px solid var(--accent);margin-bottom:1.5rem}.eyebrow{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase}h1,h2{font-family:Georgia,serif;color:var(--accent)}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:clamp(1rem,3vw,2rem);margin:1rem 0;box-shadow:0 3px 12px #593b2412}label{display:block;font-weight:650;margin:.8rem 0}input,select,textarea{display:block;width:100%;margin-top:.35rem;padding:.65rem;border:1px solid #a99b8c;border-radius:6px;background:#fff;color:var(--ink);font:inherit}.grid,.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}.filters button{align-self:end}.filters label{min-width:0}button{background:var(--accent);color:white;border:0;border-radius:6px;padding:.75rem 1.2rem;font-weight:700;cursor:pointer}.button,.request button{margin-top:.5rem}.danger{background:#8b2635}.request{border-top:1px solid var(--line);padding:1rem 0}.status{display:inline-block;border-radius:99px;background:#e9dfcf;padding:.2rem .65rem;font-size:.85rem;font-weight:700}.private{color:var(--muted);font-size:.92rem}.delete-form{margin-top:.5rem}dialog{max-width:min(44rem,calc(100vw - 2rem));width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:1.25rem;box-shadow:0 8px 40px #593b2450}dialog::backdrop{background:#24374680}dialog dl{display:grid;grid-template-columns:minmax(9rem,auto) 1fr;gap:.35rem 1rem}dialog dt{font-weight:700;color:var(--muted)}dialog dd{margin:0}dialog ol{padding-left:1.5rem}@media(max-width:700px){.grid,.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.grid>*,.filters>*{min-width:0}.leave{width:100%;max-width:100%;padding:1rem;overflow:hidden}.card{padding:1rem}input,select,textarea{max-width:100%;min-width:0}dialog dl{grid-template-columns:1fr}dialog{max-height:90vh;overflow:auto}}
- .content{max-width:980px;margin:0 auto;padding:clamp(1rem,4vw,3rem)}.table-scroll{max-width:100%;overflow-x:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+/* Freistellung uses the regular Arcanum teacher/admin visual language. */
+.leave { max-width: 980px; margin: 0 auto; padding: clamp(1rem, 4vw, 3rem); }
+.leave header { border-bottom: 3px solid #2c668e; margin-bottom: 1.5rem; }
+.leave .eyebrow { color: #2c668e; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.leave h1, .leave h2, .leave h3 { color: #17324d; }
+.leave .card { background: #fff; border: 1px solid #d5e0ea; border-radius: .5rem; padding: clamp(1rem, 3vw, 2rem); margin: 1rem 0; box-shadow: 0 2px 8px #17324d14; }
+.leave label { display: block; font-weight: 650; margin: .8rem 0; }
+.leave input, .leave select, .leave textarea { display: block; width: 100%; margin-top: .35rem; padding: .65rem; border: 1px solid #9eb1c2; border-radius: .35rem; background: #fff; color: #17324d; font: inherit; }
+.leave button { background: #2c668e; color: #fff; border: 0; border-radius: .35rem; padding: .7rem 1.1rem; font-weight: 700; cursor: pointer; }
+.leave button:hover, .leave button:focus-visible { background: #17324d; }
+.leave button.danger { background: #a52b3b; }
+.leave .grid, .leave .filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.leave .filters button { align-self: end; }
+.leave .request { border-top: 1px solid #d5e0ea; padding: 1rem 0; }
+.leave .request:first-child { border-top: 0; }
+.leave .status { display: inline-block; border-radius: 99px; background: #e3edf5; color: #17324d; padding: .2rem .65rem; font-size: .85rem; font-weight: 700; }
+.leave .private { color: #526b82; font-size: .92rem; }
+.leave .delete-form { margin-top: .5rem; }
+.leave dialog { max-width: min(44rem, calc(100vw - 2rem)); width: 100%; border: 1px solid #d5e0ea; border-radius: .5rem; background: #fff; color: #17324d; padding: 1.25rem; box-shadow: 0 8px 40px #17324d40; }
+.leave dialog::backdrop { background: #17324d80; }
+.leave dialog dl { display: grid; grid-template-columns: minmax(10rem, auto) 1fr; gap: .35rem 1rem; }
+.leave dialog dt { font-weight: 700; color: #526b82; }
+.leave dialog dd { margin: 0; }
+.leave dialog ol { padding-left: 1.5rem; }
+@media (max-width: 700px) {
+  .leave, .leave .card { width: 100%; max-width: 100%; padding: 1rem; }
+  .leave .grid, .leave .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leave input, .leave select, .leave textarea { max-width: 100%; min-width: 0; }
+  .leave dialog { max-height: 90vh; overflow: auto; }
+  .leave dialog dl { grid-template-columns: 1fr; }
+}

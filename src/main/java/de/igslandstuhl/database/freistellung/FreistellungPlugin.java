@@ -114,9 +114,9 @@ public final class FreistellungPlugin extends Plugin {
         LocalDate sd = LocalDate.parse(start), ed = LocalDate.parse(end);
         if (ed.isBefore(sd) || (sd.equals(ed) && eh < sh)) throw new IllegalArgumentException("Ungültiger Zeitraum");
         String reason = type.equals("PERSOENLICHE_GRUENDE") ? PERSONAL : required(rq,"reason");
-        String group = optional(rq,"groupName");
-        if ((type.equals("KLASSENFAHRT") || type.equals("UNTERRICHTSGANG")) && (group == null || group.isBlank())) throw new IllegalArgumentException("Lerngruppe erforderlich");
-        if (!(type.equals("KLASSENFAHRT") || type.equals("UNTERRICHTSGANG"))) group = null;
+        // New applications use one common free-text field. The legacy column is
+        // retained only so historical group information remains readable.
+        String group = null;
         String id = UUID.randomUUID().toString(), now = Instant.now().toString();
         Attachment attachment = attachment(rq);
         try (PreparedStatement p = db().prepareStatement("INSERT INTO freistellung_requests (id,applicant,type,start_date,end_date,start_hour,end_hour,reason,group_name,status,created_at,updated_at,school_year) VALUES (?,?,?,?,?,?,?,?,?,?,?, ?,?)")) {

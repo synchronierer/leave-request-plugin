@@ -1,6 +1,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const text = (node, value) => { node.textContent = value == null ? "" : String(value); };
+  const berlinTime = value => { if (!value) return ''; const date = new Date(value); return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('de-DE', {dateStyle:'medium', timeStyle:'short', timeZone:'Europe/Berlin'}).format(date); };
   async function load() {
     const response = await fetch('/freistellung-mail-admin-data', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
     if (!response.ok) throw new Error('Mailverwaltung konnte nicht geladen werden.');
@@ -20,7 +21,7 @@
       }); profiles.append(row);
     }
     const notifications = $('notifications'); notifications.replaceChildren();
-    for (const item of data.notifications || []) { const row=document.createElement('tr'); row.innerHTML='<td></td><td></td><td></td><td></td><td></td><td></td>'; [item.createdAt,item.event,item.recipientEmail || item.recipient,item.state,item.subject,item.error].forEach((v,i)=>text(row.children[i],v)); notifications.append(row); }
+    for (const item of data.notifications || []) { const row=document.createElement('tr'); row.innerHTML='<td></td><td></td><td></td><td></td><td></td><td></td>'; [berlinTime(item.createdAt),item.event,item.recipientEmail || item.recipient,item.state,item.subject,item.error].forEach((v,i)=>text(row.children[i],v)); notifications.append(row); }
   }
   $('test-form').addEventListener('submit', async (event) => { event.preventDefault(); const response=await fetch('/freistellung-mail-test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recipient:$('test-recipient').value})}); text($('test-result'),response.ok?'Testmail wurde im Versandprotokoll vorgemerkt.':'Testmail konnte nicht vorgemerkt werden.'); if(response.ok)load(); });
   load().catch((error) => text($('mail-warning'), error.message));

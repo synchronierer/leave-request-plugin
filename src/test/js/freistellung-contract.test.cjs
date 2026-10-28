@@ -27,3 +27,16 @@ test('mail uses Arcanum profiles, current rights and a fake transport by default
   const applicant=fs.readFileSync(path.join(root,'resources/js/user/freistellung.js'),'utf8');
   assert.doesNotMatch(applicant,/data-withdraw/);
 });
+
+test('application UI keeps PDF optional, preserves legacy groups and formats Berlin time',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung.html'),'utf8');
+  const js=fs.readFileSync(path.join(root,'resources/js/user/freistellung.js'),'utf8');
+  const css=fs.readFileSync(path.join(root,'resources/css/user/freistellung.css'),'utf8');
+  assert.match(html,/PDF-Anhang \(freiwillig/);
+  assert.doesNotMatch(html,/id="group-wrap"/);
+  assert.match(js,/Europe\/Berlin/);
+  assert.match(js,/historisch/);
+  assert.match(html,/teacher-dashboard/);
+  assert.doesNotMatch(css,/Georgia|#f7f4ec|#7d4e35/);
+});

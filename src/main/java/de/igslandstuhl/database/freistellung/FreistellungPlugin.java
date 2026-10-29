@@ -40,7 +40,7 @@ public final class FreistellungPlugin extends Plugin {
     @Override protected void onLoad() {
         config = new FreistellungConfig(this);
         getLogger().info("Freistellung plugin loading");
-        try { schema(); migrateLegacyRoles(); } catch (SQLException e) { throw new IllegalStateException("Freistellung-Schema konnte nicht angelegt werden", e); }
+        try { schema(); } catch (SQLException e) { throw new IllegalStateException("Freistellung-Schema konnte nicht angelegt werden", e); }
         for (String path : List.of("/freistellung-submit", "/freistellung-orga", "/freistellung-sl", "/freistellung-delete", "/freistellung-resend", "/freistellung-withdraw"))
             HttpHandler.registerPostRequestHandler(path, AccessLevel.TEACHER, this::post);
         HttpHandler.registerPostRequestHandler("/freistellung-data", AccessLevel.TEACHER, this::post);
@@ -72,18 +72,8 @@ public final class FreistellungPlugin extends Plugin {
         }
     }
 
-    private void migrateLegacyRoles() throws SQLException {
-        // Die Tabelle bleibt als historische Datenquelle erhalten; neue Zugriffsentscheidungen
-        // kommen ausschließlich aus den drei Permission-Manager-Rechten.
-        String[][] migration = {{"ORGALEITER", ORGA}, {"SCHULLEITUNG", SL}};
-        for (String[] item : migration) {
-            try (PreparedStatement p = db().prepareStatement("INSERT OR IGNORE INTO permnodes(permission,username,active) SELECT ?,username,1 FROM freistellung_roles WHERE role=? AND EXISTS (SELECT 1 FROM permissions WHERE name=?)")) {
-                p.setString(1, item[1]); p.setString(2, item[0]); p.setString(3, item[1]); p.executeUpdate();
-            } catch (SQLException ignored) {
-                // Permission Manager may not have initialized its tables in a minimal test fixture.
-            }
-        }
-    }
+    // Historical freistellung_roles rows remain available for review. They do not
+    // recreate permission overrides: only an explicit administrator action may do so.
 
     private HttpResponse post(APIPostRequest rq) {
         User user = rq.getUser();

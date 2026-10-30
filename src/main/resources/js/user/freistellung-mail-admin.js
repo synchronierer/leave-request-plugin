@@ -6,7 +6,12 @@
     const response = await fetch('/freistellung-mail-admin-data', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
     if (!response.ok) throw new Error('Mailverwaltung konnte nicht geladen werden.');
     const data = await response.json();
-    text($('transport'), JSON.stringify(data.transport, null, 2));
+    const transport = $('transport'); transport.replaceChildren();
+    const labels = {environment:'Betriebsart', mode:'Transport', configured:'Konfiguration', connected:'Verbindung', senderName:'Absendername', senderAddress:'Absenderadresse', host:'SMTP-Host', port:'SMTP-Port', tls:'TLS/STARTTLS', username:'SMTP-Benutzername', secretConfigured:'Secretstatus'};
+    for (const [key, value] of Object.entries(data.transport || {})) {
+      if (['password','secret','token'].some(part => key.toLowerCase().includes(part))) continue;
+      const dt = document.createElement('dt'), dd = document.createElement('dd'); text(dt, labels[key] || key); text(dd, typeof value === 'boolean' ? (value ? 'Ja' : 'Nein') : value); transport.append(dt, dd);
+    }
     const profiles = $('profiles'); profiles.replaceChildren();
     for (const profile of data.profiles || []) {
       const row = document.createElement('tr');

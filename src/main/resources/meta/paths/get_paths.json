@@ -3,6 +3,7 @@
   "/freistellung.css": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"css","access_level":"teacher"},
   "/freistellung.js": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"js","access_level":"teacher"}
   ,"/freistellung-bearbeitung": {"type":"GET","handler_type":"TemplatingFileRequestHandler","namespaces":["user"],"context":"html","access_level":"teacher"}
+  ,"/freistellung-bearbeitung.js": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"js","access_level":"teacher"}
   ,"/freistellung-mail-admin": {"type":"GET","handler_type":"TemplatingFileRequestHandler","namespaces":["user"],"context":"html","access_level":"admin"}
   ,"/freistellung-mail-admin.js": {"type":"GET","handler_type":"FileRequestHandler","namespaces":["user"],"context":"js","access_level":"admin"}
 }

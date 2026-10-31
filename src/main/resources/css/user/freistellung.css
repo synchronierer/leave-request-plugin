@@ -17,11 +17,20 @@
 .leave-field-grid { align-items: start; }
 .leave-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1rem; margin-top: .25rem; }
 .leave-form-actions output { min-height: 1.4rem; color: #24527a; font-weight: 650; }
+.leave-filter-card { background: #f8fbfd; }
+.leave-section-heading { margin-bottom: 1.25rem; padding-bottom: .85rem; border-bottom: 1px solid #d5e0ea; }
+.leave-section-heading h2 { margin: .15rem 0 .35rem; }
+.leave-section-heading p:last-child { margin: 0; color: #526b82; }
+.leave-filter-form { display: grid; gap: 1.25rem; }
+.leave-filter-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.leave-filter-grid .leave-field { min-width: 0; }
+.leave-filter-grid input, .leave-filter-grid select { min-height: 2.9rem; }
+.leave-filter-card .leave-form-actions { border-top: 1px solid #d5e0ea; padding-top: 1rem; margin-top: 0; }
+.leave-filter-card .leave-form-actions .field-hint { margin: 0; }
 .leave button { background: #2c668e; color: #fff; border: 0; border-radius: .35rem; padding: .7rem 1.1rem; font-weight: 700; cursor: pointer; }
 .leave button:hover, .leave button:focus-visible { background: #17324d; }
 .leave button.danger { background: #a52b3b; }
-.leave .leave-field-grid, .leave .filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
-.leave .filters button { align-self: end; }
+.leave .leave-field-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
 .leave .request { border-top: 1px solid #d5e0ea; padding: 1rem 0; }
 .leave .request:first-child { border-top: 0; }
 .leave .status { display: inline-block; border-radius: 99px; background: #e3edf5; color: #17324d; padding: .2rem .65rem; font-size: .85rem; font-weight: 700; }
@@ -37,10 +46,13 @@
 .leave [data-state="error"] { background: #fff4f1; color: #8c2f23; border: 1px solid #e3b3a9; }
 @media (max-width: 700px) {
   .leave, .leave .card { width: 100%; max-width: 100%; padding: 1rem; }
-  .leave .leave-field-grid, .leave .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leave .leave-field-grid, .leave-filter-grid { grid-template-columns: 1fr; }
   .leave-form-actions { align-items: stretch; flex-direction: column; }
   .leave-form-actions button, .leave-form-actions output { width: 100%; box-sizing: border-box; }
   .leave input, .leave select, .leave textarea { max-width: 100%; min-width: 0; }
   .leave dialog { max-height: 90vh; overflow: auto; }
   .leave dialog dl { grid-template-columns: 1fr; }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .leave-filter-grid, .leave .leave-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

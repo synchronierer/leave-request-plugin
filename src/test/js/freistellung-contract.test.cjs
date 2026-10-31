@@ -66,22 +66,40 @@ test('application UI keeps PDF optional, preserves legacy groups and formats Ber
   assert.match(js,/Europe\/Berlin/);
   assert.match(js,/historisch/);
   assert.match(html,/teacher-dashboard/);
+  assert.match(html,/<link rel="stylesheet" href="\/freistellung\.css">/);
   assert.doesNotMatch(css,/Georgia|#f7f4ec|#7d4e35/);
 });
 
 test('review UI has terminal loading states and a bounded authenticated data path',()=>{
   const root=path.join(__dirname,'..','..','main');
   const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung-bearbeitung.html'),'utf8');
+  const js=fs.readFileSync(path.join(root,'resources/js/user/freistellung-bearbeitung.js'),'utf8');
   const css=fs.readFileSync(path.join(root,'resources/css/user/freistellung.css'),'utf8');
   assert.match(html,/data-state="loading"/);
-  assert.match(html,/data-state='empty'|setListState\('empty'/);
-  assert.match(html,/setListState\('error'/);
-  assert.match(html,/new AbortController\(\)/);
-  assert.match(html,/fetchFreistellungJson/);
-  assert.doesNotMatch(html,/const fetchJson=/);
-  assert.match(html,/credentials:'same-origin'/);
-  assert.match(html,/cache:'no-store'/);
+  assert.match(html,/<link rel="stylesheet" href="\/freistellung\.css">/);
+  assert.match(js,/setListState\('empty'/);
+  assert.match(js,/setListState\('error'/);
+  assert.match(js,/new AbortController\(\)/);
+  assert.match(js,/fetchFreistellungJson/);
+  assert.match(js,/credentials:'same-origin'/);
+  assert.match(js,/cache:'no-store'/);
+  assert.doesNotMatch(html,/<script>[^<]*[\s\S]*<\/script>/);
+  assert.match(html,/<script src="\/freistellung-bearbeitung\.js"><\/script>/);
   assert.match(css,/\[data-state="error"\]/);
+});
+
+test('all Freistellung production HTML uses strict-CSP compatible scripts',()=>{
+  const root=path.join(__dirname,'..','..','main','resources');
+  const htmlFiles=fs.readdirSync(path.join(root,'html','user')).filter(file=>file.endsWith('.html'));
+  for (const file of htmlFiles) {
+    const html=fs.readFileSync(path.join(root,'html','user',file),'utf8');
+    assert.doesNotMatch(html,/<script(?:\s[^>]*)?>(?!\s*<\/script>)[\s\S]*?<\/script>/i,`${file} contains inline script`);
+    assert.doesNotMatch(html,/<(?:button|input|select|textarea|a)[^>]+\son[a-z]+\s*=/i,`${file} contains inline event handler`);
+    assert.doesNotMatch(html,/<[^>]+\sstyle\s*=/i,`${file} contains inline style`);
+  }
+  const paths=JSON.parse(fs.readFileSync(path.join(root,'meta/paths/get_paths.json'),'utf8'));
+  assert.equal(paths['/freistellung-bearbeitung.js'].access_level,'teacher');
+  assert.ok(fs.existsSync(path.join(root,'js/user/freistellung-bearbeitung.js')));
 });
 
 test('application fields use the teacher dashboard form language',()=>{
@@ -93,4 +111,19 @@ test('application fields use the teacher dashboard form language',()=>{
   assert.match(html,/field-hint/);
   assert.match(css,/\.leave-form-actions/);
   assert.match(css,/focus-visible/);
+});
+
+test('review filters have explicit structure and stable field geometry hooks',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung-bearbeitung.html'),'utf8');
+  const css=fs.readFileSync(path.join(root,'resources/css/user/freistellung.css'),'utf8');
+  assert.match(html,/leave-filter-card/);
+  assert.match(html,/leave-filter-grid/);
+  assert.match(html,/id="review-filters"/);
+  assert.match(html,/for="status"/);
+  assert.match(html,/for="schoolYear"/);
+  assert.match(html,/for="applicant"/);
+  assert.match(html,/for="type"/);
+  assert.match(css,/\.leave-section-heading/);
+  assert.match(css,/\.leave-filter-grid/);
 });

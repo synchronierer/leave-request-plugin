@@ -7,7 +7,7 @@
     if (!x) return;
     const rows = [['Antragsteller',x.applicant],['Antragsart',x.type],['Schuljahr',x.schoolYear],['Antragstellung',berlinTime(x.createdAt)],['Zeitraum',`${x.startDate}–${x.endDate}`],['Stunden',`${x.startHour}–${x.endHour}`],['Anlass / Begründung',x.reason],['Status',x.status],['Entscheidung',x.slDecision||x.orgaDecision]].filter(([,value]) => value != null && value !== '');
     const group = x.groupName ? `<dt>Lerngruppe (historisch)</dt><dd>${esc(x.groupName)}</dd>` : '';
-    detailContent.innerHTML = `<h2>Freistellungsantrag</h2><dl>${rows.map(([key,value]) => `<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}${group}</dl>${x.attachment?`<p><a href="/freistellung-attachment?id=${encodeURIComponent(x.id)}">PDF-Anhang öffnen</a></p>`:''}${x.slMessage?`<p><strong>Mitteilung:</strong> ${esc(x.slMessage)}</p>`:''}<h3>Bearbeitungshistorie</h3><ol>${(x.history||[]).map(h=>`<li>${esc(berlinTime(h.at))} · ${esc(h.function)} · ${esc(h.detail)}</li>`).join('')}</ol>`;
+    detailContent.innerHTML = `<h2>Freistellungsantrag</h2><dl>${rows.map(([key,value]) => `<dt>${esc(key)}</dt><dd>${esc(value)}</dd>`).join('')}${group}</dl>${x.attachment?`<p><a href="/freistellung-attachment?id=${encodeURIComponent(x.id)}">PDF-Anhang öffnen</a></p>`:''}${x.slMessage?`<p><strong>Mitteilung:</strong> ${esc(x.slMessage)}</p>`:''}<h3>Bearbeitungshistorie</h3><ol>${(x.history||[]).map(h=>`<li>${esc(berlinTime(h.at))} · ${esc(h.status || '')}${h.message?` – ${esc(h.message)}`:''}</li>`).join('')}</ol>`;
     detail.showModal();
   };
   detail.querySelector('[data-close-detail]').addEventListener('click', () => detail.close());

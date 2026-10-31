@@ -38,6 +38,24 @@ test('mail admin handlers use the shared active-mode admin authorization',()=>{
   for (const route of ['/freistellung-mail-admin-data','/freistellung-mail-profile','/freistellung-mail-test']) assert.equal(postPaths[route].access_level,'admin');
 });
 
+test('applicant history is server-side allow-listed and never contains reviewer metadata',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const source=fs.readFileSync(path.join(root,'java/de/igslandstuhl/database/freistellung/FreistellungPlugin.java'),'utf8');
+  assert.match(source,/return reviewer \? o : applicantView\(o\)/);
+  assert.match(source,/static JsonObject applicantView\(JsonObject internal\)/);
+  const view=source.slice(source.indexOf('static JsonObject applicantView'),source.indexOf('private JsonArray history'));
+  for (const field of ['actor','function','fromStatus','toStatus','detail','orgaComment','slInternalComment']) {
+    assert.doesNotMatch(view,new RegExp(`(?:addProperty|add)\\(\\\"${field}\\\"`));
+  }
+  assert.match(view,/safe.add\(\"history\", publicHistory\)/);
+});
+
+test('missing-mail warnings are idempotent under the notification uniqueness contract',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const source=fs.readFileSync(path.join(root,'java/de/igslandstuhl/database/freistellung/FreistellungPlugin.java'),'utf8');
+  assert.match(source,/INSERT OR IGNORE INTO freistellung_notifications\(request_id,recipient,event,state/);
+});
+
 test('application UI keeps PDF optional, preserves legacy groups and formats Berlin time',()=>{
   const root=path.join(__dirname,'..','..','main');
   const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung.html'),'utf8');

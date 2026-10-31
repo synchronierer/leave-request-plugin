@@ -188,7 +188,142 @@ public final class FreistellungPlugin extends Plugin {
     private HttpResponse resend(APIPostRequest rq, User user) throws SQLException { if(!(hasPermission(user,ORGA)||hasPermission(user,SL)))return PostResponse.forbidden("Keine Berechtigung",rq);try(PreparedStatement p=db().prepareStatement("UPDATE freistellung_notifications SET state='PENDING', attempts=attempts+1 WHERE id=?")){p.setLong(1,Integer.parseInt(required(rq,"notificationId")));p.executeUpdate();}return PostResponse.json(Map.of("queued",true),rq); }
     private HttpResponse withdraw(APIPostRequest rq, User user) { return PostResponse.forbidden("Ein eingereichter Antrag kann nicht mehr geändert oder zurückgezogen werden",rq); }
 
-    private JsonObject publicJson(ResultSet r, boolean orga, boolean sl) throws SQLException { JsonObject o=new JsonObject();o.addProperty("id",r.getString("id"));o.addProperty("applicant",r.getString("applicant"));o.addProperty("type",r.getString("type"));o.addProperty("startDate",r.getString("start_date"));o.addProperty("endDate",r.getString("end_date"));o.addProperty("startHour",r.getInt("start_hour"));o.addProperty("endHour",r.getInt("end_hour"));o.addProperty("reason",r.getString("reason"));o.addProperty("groupName",r.getString("group_name"));o.addProperty("status",r.getString("status"));o.addProperty("schoolYear",r.getString("school_year"));o.addProperty("createdAt",r.getString("created_at"));o.addProperty("completedAt",r.getString("sl_at"));o.addProperty("attachment",r.getString("attachment_id")!=null);o.addProperty("attachmentName",r.getString("attachment_name"));if(orga){o.addProperty("slInternalComment",r.getString("sl_internal_comment"));o.addProperty("slMessage",r.getString("sl_message"));o.addProperty("orgaDecision",r.getString("orga_decision"));o.addProperty("orgaComment",r.getString("orga_comment"));}else if(sl){o.addProperty("orgaDecision",r.getString("orga_decision"));o.addProperty("orgaComment",r.getString("orga_comment"));o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slInternalComment",r.getString("sl_internal_comment"));o.addProperty("slMessage",r.getString("sl_message"));}else{o.addProperty("slDecision",r.getString("sl_decision"));o.addProperty("slMessage",r.getString("sl_message"));}JsonArray history=new JsonArray();try(PreparedStatement p=db().prepareStatement("SELECT actor,function_name,from_status,to_status,event_at,detail FROM freistellung_history WHERE request_id=? ORDER BY id")){p.setString(1,r.getString("id"));try(ResultSet h=p.executeQuery()){while(h.next()){JsonObject e=new JsonObject();e.addProperty("actor",h.getString(1));e.addProperty("function",h.getString(2));e.addProperty("fromStatus",h.getString(3));e.addProperty("toStatus",h.getString(4));e.addProperty("at",h.getString(5));e.addProperty("detail",h.getString(6));history.add(e);}}}o.add("history",history);return o; }
+    private JsonObject publicJson(ResultSet r, boolean orga, boolean sl) throws SQLException {
+        boolean reviewer = orga || sl;
+        JsonObject o = new JsonObject();
+        o.addProperty("id", r.getString("id"));
+        o.addProperty("applicant", r.getString("applicant"));
+        o.addProperty("type", r.getString("type"));
+        o.addProperty("startDate", r.getString("start_date"));
+        o.addProperty("endDate", r.getString("end_date"));
+        o.addProperty("startHour", r.getInt("start_hour"));
+        o.addProperty("endHour", r.getInt("end_hour"));
+        o.addProperty("reason", r.getString("reason"));
+        o.addProperty("groupName", r.getString("group_name"));
+        o.addProperty("status", r.getString("status"));
+        o.addProperty("schoolYear", r.getString("school_year"));
+        o.addProperty("createdAt", r.getString("created_at"));
+        o.addProperty("completedAt", r.getString("sl_at"));
+        o.addProperty("attachment", r.getString("attachment_id") != null);
+        o.addProperty("attachmentName", r.getString("attachment_name"));
+        if (orga) {
+            o.addProperty("slInternalComment", r.getString("sl_internal_comment"));
+            o.addProperty("slMessage", r.getString("sl_message"));
+            o.addProperty("orgaDecision", r.getString("orga_decision"));
+            o.addProperty("orgaComment", r.getString("orga_comment"));
+        } else if (sl) {
+            o.addProperty("orgaDecision", r.getString("orga_decision"));
+            o.addProperty("orgaComment", r.getString("orga_comment"));
+            o.addProperty("slDecision", r.getString("sl_decision"));
+            o.addProperty("slInternalComment", r.getString("sl_internal_comment"));
+            o.addProperty("slMessage", r.getString("sl_message"));
+        } else {
+            // Applicant-facing data is an explicit allow-list. Internal
+            // comments, actor IDs, functions and workflow enums never enter
+            // this response, even though they remain stored for auditing.
+            o.addProperty("slDecision", r.getString("sl_decision"));
+            o.addProperty("slMessage", r.getString("sl_message"));
+        }
+        o.add("history", history(r.getString("id"), reviewer));
+        return reviewer ? o : applicantView(o);
+    }
+
+    /**
+     * Final server-side allow-list for the applicant API response. Keeping
+     * this boundary separate from the reviewer response prevents an internal
+     * field from becoming visible merely because a new property was added to
+     * the shared request object.
+     */
+    static JsonObject applicantView(JsonObject internal) {
+        JsonObject safe = new JsonObject();
+        for (String field : List.of("id", "applicant", "type", "startDate", "endDate", "startHour",
+                "endHour", "reason", "groupName", "status", "schoolYear", "createdAt", "completedAt",
+                "attachment", "attachmentName", "slDecision", "slMessage")) {
+            if (!internal.has(field)) continue;
+            JsonElement value = internal.get(field);
+            if ("status".equals(field) && !value.isJsonNull()) safe.addProperty(field, applicantStatus(value.getAsString()));
+            else if ("slDecision".equals(field) && !value.isJsonNull()) safe.addProperty(field, publicDecision(value.getAsString()));
+            else safe.add(field, value);
+        }
+        JsonArray publicHistory = new JsonArray();
+        JsonArray history = internal.getAsJsonArray("history");
+        if (history != null) {
+            for (JsonElement item : history) {
+                if (!item.isJsonObject()) continue;
+                JsonObject source = item.getAsJsonObject(), target = new JsonObject();
+                if (source.has("at")) target.add("at", source.get("at"));
+                if (source.has("status") && !source.get("status").isJsonNull())
+                    target.addProperty("status", applicantStatus(source.get("status").getAsString()));
+                if (source.has("message")) target.add("message", source.get("message"));
+                publicHistory.add(target);
+            }
+        }
+        safe.add("history", publicHistory);
+        return safe;
+    }
+
+    private JsonArray history(String requestId, boolean reviewer) throws SQLException {
+        JsonArray history = new JsonArray();
+        try (PreparedStatement p = db().prepareStatement(
+                "SELECT actor,function_name,from_status,to_status,event_at,detail FROM freistellung_history WHERE request_id=? ORDER BY id")) {
+            p.setString(1, requestId);
+            try (ResultSet h = p.executeQuery()) {
+                while (h.next()) {
+                    JsonObject e = new JsonObject();
+                    if (reviewer) {
+                        e.addProperty("actor", h.getString(1));
+                        e.addProperty("function", h.getString(2));
+                        e.addProperty("fromStatus", h.getString(3));
+                        e.addProperty("toStatus", h.getString(4));
+                        e.addProperty("at", h.getString(5));
+                        e.addProperty("detail", h.getString(6));
+                    } else {
+                        // Only public time and a public status label are
+                        // exposed to applicants. Do not serialize any
+                        // internal function, actor, comment or raw status.
+                        e.addProperty("at", h.getString(5));
+                        e.addProperty("status", applicantStatus(h.getString(4)));
+                        e.addProperty("message", applicantHistoryMessage(h.getString(4)));
+                    }
+                    history.add(e);
+                }
+            }
+        }
+        return history;
+    }
+
+    private static String applicantHistoryMessage(String status) {
+        return switch (status) {
+            case "EINGEREICHT" -> "Antrag eingereicht.";
+            case "ORGA_RUECKSPRACHE" -> "Rücksprache erforderlich.";
+            case "ORGA_ABGESCHLOSSEN" -> "Die Vorprüfung ist abgeschlossen.";
+            case "ABGESCHLOSSEN" -> "Endgültige Entscheidung gespeichert.";
+            case "ZURUECKGEZOGEN" -> "Antrag zurückgezogen.";
+            default -> "Bearbeitungsstand aktualisiert.";
+        };
+    }
+
+    private static String applicantStatus(String status) {
+        return switch (status) {
+            case "EINGEREICHT" -> "Eingereicht";
+            case "ORGA_RUECKSPRACHE" -> "Rücksprache erforderlich";
+            case "ORGA_ABGESCHLOSSEN" -> "Vorprüfung abgeschlossen";
+            case "ABGESCHLOSSEN" -> "Entschieden";
+            case "ZURUECKGEZOGEN" -> "Zurückgezogen";
+            default -> "In Bearbeitung";
+        };
+    }
+
+    private static String publicDecision(String decision) {
+        if (decision == null) return null;
+        return switch (decision) {
+            case "GENEHMIGT" -> "Genehmigt";
+            case "GENEHMIGT_NACHHALTEN" -> "Genehmigt – Stunden nachhalten";
+            case "NICHT_MOEGLICH" -> "Nicht möglich";
+            case "RUECKSPRACHE" -> "Rücksprache erforderlich";
+            default -> "Entschieden";
+        };
+    }
     private void requirePermission(User u,String permission){if(!hasPermission(u,permission))throw new SecurityException("Keine Berechtigung");}
     private boolean hasPermission(User u,String permission){
         try {
@@ -255,7 +390,7 @@ public final class FreistellungPlugin extends Plugin {
     }
     private void queueUser(String id,String username,String event,String subject,String body) throws SQLException {String email=notificationEmail(username);if(email==null){recordMailWarning(id,"ANTRAGSTELLER",event,username,"Keine gültige Mailadresse hinterlegt");return;}queueRecipient(id,username,email,"ANTRAGSTELLER",event,subject,body);}
     private void queueRecipient(String id,String username,String email,String audience,String event,String subject,String body)throws SQLException{try(PreparedStatement p=db().prepareStatement("INSERT OR IGNORE INTO freistellung_notifications(request_id,recipient,event,state,created_at,audience,subject,body,recipient_username,recipient_email) VALUES(?,?,?,?,?,?,?,?,?,?)")){p.setString(1,id);p.setString(2,email);p.setString(3,event);p.setString(4,"PENDING");p.setString(5,Instant.now().toString());p.setString(6,audience);p.setString(7,subject);p.setString(8,body);p.setString(9,username);p.setString(10,email);p.executeUpdate();}}
-    private void recordMailWarning(String id,String audience,String event,String username,String message)throws SQLException{try(PreparedStatement p=db().prepareStatement("INSERT INTO freistellung_notifications(request_id,recipient,event,state,created_at,audience,last_error,recipient_username) VALUES(?,?,?,?,?,?,?,?)")){p.setString(1,id);p.setString(2,username==null?"(kein Empfänger)":username);p.setString(3,event);p.setString(4,"BLOCKED_NO_RECIPIENT");p.setString(5,Instant.now().toString());p.setString(6,audience);p.setString(7,message);p.setString(8,username);p.executeUpdate();}}
+    private void recordMailWarning(String id,String audience,String event,String username,String message)throws SQLException{try(PreparedStatement p=db().prepareStatement("INSERT OR IGNORE INTO freistellung_notifications(request_id,recipient,event,state,created_at,audience,last_error,recipient_username) VALUES(?,?,?,?,?,?,?,?)")){p.setString(1,id);p.setString(2,username==null?"(kein Empfänger)":username);p.setString(3,event);p.setString(4,"BLOCKED_NO_RECIPIENT");p.setString(5,Instant.now().toString());p.setString(6,audience);p.setString(7,message);p.setString(8,username);p.executeUpdate();}}
     private String notificationEmail(String username) throws SQLException {try(PreparedStatement p=db().prepareStatement("SELECT notification_email FROM freistellung_user_profiles WHERE username=?")){p.setString(1,username);try(ResultSet r=p.executeQuery()){if(!r.next())return null;String e=r.getString(1);return validEmail(e)?e.trim():null;}}}
     private static boolean validEmail(String email){return email!=null&&!email.contains("\r")&&!email.contains("\n")&&MAIL.matcher(email.trim()).matches();}
 

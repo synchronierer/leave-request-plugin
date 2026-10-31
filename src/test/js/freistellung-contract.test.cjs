@@ -28,6 +28,16 @@ test('mail uses Arcanum profiles, current rights and a fake transport by default
   assert.doesNotMatch(applicant,/data-withdraw/);
 });
 
+test('mail admin handlers use the shared active-mode admin authorization',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const source=fs.readFileSync(path.join(root,'java/de/igslandstuhl/database/freistellung/FreistellungPlugin.java'),'utf8');
+  assert.match(source,/AccessManager\.getInstance\(\)\.isAdminRouteAuthorized/);
+  assert.equal((source.match(/mailAdminAuthorized\(rq,user\)/g)||[]).length,3);
+  assert.doesNotMatch(source,/if\(!user\.isAdmin\(\)\)return PostResponse\.forbidden/);
+  const postPaths=JSON.parse(fs.readFileSync(path.join(root,'resources/meta/paths/post_paths.json'),'utf8'));
+  for (const route of ['/freistellung-mail-admin-data','/freistellung-mail-profile','/freistellung-mail-test']) assert.equal(postPaths[route].access_level,'admin');
+});
+
 test('application UI keeps PDF optional, preserves legacy groups and formats Berlin time',()=>{
   const root=path.join(__dirname,'..','..','main');
   const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung.html'),'utf8');

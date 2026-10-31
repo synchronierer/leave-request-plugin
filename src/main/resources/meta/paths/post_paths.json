@@ -1,0 +1,23 @@
+{
+  "/freistellung-mail-admin-data": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
+  },
+  "/freistellung-mail-profile": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
+  },
+  "/freistellung-mail-test": {
+    "type": "POST",
+    "handler_type": "PostRequestHandler",
+    "namespaces": [],
+    "context": "html",
+    "access_level": "admin"
+  }
+}

@@ -68,3 +68,29 @@ test('application UI keeps PDF optional, preserves legacy groups and formats Ber
   assert.match(html,/teacher-dashboard/);
   assert.doesNotMatch(css,/Georgia|#f7f4ec|#7d4e35/);
 });
+
+test('review UI has terminal loading states and a bounded authenticated data path',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung-bearbeitung.html'),'utf8');
+  const css=fs.readFileSync(path.join(root,'resources/css/user/freistellung.css'),'utf8');
+  assert.match(html,/data-state="loading"/);
+  assert.match(html,/data-state='empty'|setListState\('empty'/);
+  assert.match(html,/setListState\('error'/);
+  assert.match(html,/new AbortController\(\)/);
+  assert.match(html,/fetchFreistellungJson/);
+  assert.doesNotMatch(html,/const fetchJson=/);
+  assert.match(html,/credentials:'same-origin'/);
+  assert.match(html,/cache:'no-store'/);
+  assert.match(css,/\[data-state="error"\]/);
+});
+
+test('application fields use the teacher dashboard form language',()=>{
+  const root=path.join(__dirname,'..','..','main');
+  const html=fs.readFileSync(path.join(root,'resources/html/user/freistellung.html'),'utf8');
+  const css=fs.readFileSync(path.join(root,'resources/css/user/freistellung.css'),'utf8');
+  assert.match(html,/class="leave-form"/);
+  assert.match(html,/class="leave-field-grid"/);
+  assert.match(html,/field-hint/);
+  assert.match(css,/\.leave-form-actions/);
+  assert.match(css,/focus-visible/);
+});

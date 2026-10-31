@@ -1,15 +1,26 @@
 /* Freistellung uses the regular Arcanum teacher/admin visual language. */
-.leave { max-width: 980px; margin: 0 auto; padding: clamp(1rem, 4vw, 3rem); }
+.leave { max-width: none; width: 100%; box-sizing: border-box; margin: 0 auto; padding: clamp(1rem, 4vw, 3rem); }
+.leave > header, .leave > .card { width: 100%; max-width: 1120px; box-sizing: border-box; margin-left: auto; margin-right: auto; }
+.leave > .teacher-main-menu { width: 100%; box-sizing: border-box; }
 .leave header { border-bottom: 3px solid #2c668e; margin-bottom: 1.5rem; }
 .leave .eyebrow { color: #2c668e; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .leave h1, .leave h2, .leave h3 { color: #17324d; }
 .leave .card { background: #fff; border: 1px solid #d5e0ea; border-radius: .5rem; padding: clamp(1rem, 3vw, 2rem); margin: 1rem 0; box-shadow: 0 2px 8px #17324d14; }
-.leave label { display: block; font-weight: 650; margin: .8rem 0; }
-.leave input, .leave select, .leave textarea { display: block; width: 100%; margin-top: .35rem; padding: .65rem; border: 1px solid #9eb1c2; border-radius: .35rem; background: #fff; color: #17324d; font: inherit; }
+.leave-form { display: grid; gap: 1rem; }
+.leave label { display: block; font-weight: 650; margin: 0; color: #17324d; }
+.leave input, .leave select, .leave textarea { display: block; width: 100%; box-sizing: border-box; margin-top: .45rem; padding: .72rem .8rem; border: 1px solid #9eb1c2; border-radius: .45rem; background: #fff; color: #17324d; font: inherit; transition: border-color .15s ease, box-shadow .15s ease; }
+.leave input:hover, .leave select:hover, .leave textarea:hover { border-color: #5f88a6; }
+.leave input:focus-visible, .leave select:focus-visible, .leave textarea:focus-visible { border-color: #2c668e; outline: 3px solid #ffbf4788; outline-offset: 1px; box-shadow: 0 0 0 2px #e7f1f8; }
+.leave textarea { min-height: 8rem; resize: vertical; line-height: 1.45; }
+.leave input[type="file"] { padding: .55rem .65rem; }
+.leave .field-hint { display: block; margin-top: .18rem; color: #526b82; font-size: .88rem; font-weight: 500; }
+.leave-field-grid { align-items: start; }
+.leave-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1rem; margin-top: .25rem; }
+.leave-form-actions output { min-height: 1.4rem; color: #24527a; font-weight: 650; }
 .leave button { background: #2c668e; color: #fff; border: 0; border-radius: .35rem; padding: .7rem 1.1rem; font-weight: 700; cursor: pointer; }
 .leave button:hover, .leave button:focus-visible { background: #17324d; }
 .leave button.danger { background: #a52b3b; }
-.leave .grid, .leave .filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.leave .leave-field-grid, .leave .filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
 .leave .filters button { align-self: end; }
 .leave .request { border-top: 1px solid #d5e0ea; padding: 1rem 0; }
 .leave .request:first-child { border-top: 0; }
@@ -22,9 +33,13 @@
 .leave dialog dt { font-weight: 700; color: #526b82; }
 .leave dialog dd { margin: 0; }
 .leave dialog ol { padding-left: 1.5rem; }
+.leave [data-state="empty"], .leave [data-state="error"] { padding: 1rem; border-radius: .45rem; background: #f3f7fa; color: #526b82; }
+.leave [data-state="error"] { background: #fff4f1; color: #8c2f23; border: 1px solid #e3b3a9; }
 @media (max-width: 700px) {
   .leave, .leave .card { width: 100%; max-width: 100%; padding: 1rem; }
-  .leave .grid, .leave .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leave .leave-field-grid, .leave .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leave-form-actions { align-items: stretch; flex-direction: column; }
+  .leave-form-actions button, .leave-form-actions output { width: 100%; box-sizing: border-box; }
   .leave input, .leave select, .leave textarea { max-width: 100%; min-width: 0; }
   .leave dialog { max-height: 90vh; overflow: auto; }
   .leave dialog dl { grid-template-columns: 1fr; }
